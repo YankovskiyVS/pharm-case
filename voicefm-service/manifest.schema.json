@@ -1,0 +1,70 @@
+{
+  "additionalProperties": false,
+  "description": "Hash-pinned provenance supplied by an authorized model operator.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "architecture": {
+      "const": "voicefm-whisper-large-v2-contrastive-256",
+      "title": "Architecture",
+      "type": "string"
+    },
+    "upstream_revision": {
+      "const": "86d22629bde5d4e15194197da38e9c5323f48da9",
+      "title": "Upstream Revision",
+      "type": "string"
+    },
+    "source_url": {
+      "maxLength": 1000,
+      "pattern": "^https://",
+      "title": "Source Url",
+      "type": "string"
+    },
+    "weights_license": {
+      "maxLength": 1000,
+      "minLength": 3,
+      "title": "Weights License",
+      "type": "string"
+    },
+    "probe_source": {
+      "maxLength": 1000,
+      "minLength": 3,
+      "title": "Probe Source",
+      "type": "string"
+    },
+    "probe_license": {
+      "maxLength": 1000,
+      "minLength": 3,
+      "title": "Probe License",
+      "type": "string"
+    },
+    "research_only": {
+      "const": true,
+      "title": "Research Only",
+      "type": "boolean"
+    },
+    "files": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Files",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "architecture",
+    "upstream_revision",
+    "source_url",
+    "weights_license",
+    "probe_source",
+    "probe_license",
+    "research_only",
+    "files"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

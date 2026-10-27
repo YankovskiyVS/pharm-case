@@ -1,0 +1,15 @@
+services:
+  db:
+    image: psitech-postgres:16.15-patched
+    build: ../postgres
+    environment:
+      POSTGRES_USER: restore_check
+      POSTGRES_DB: restore_check
+      POSTGRES_PASSWORD: disposable-restore-check
+    tmpfs: [/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U restore_check -d restore_check"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    mem_limit: 512m

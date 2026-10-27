@@ -1,0 +1,17 @@
+numpy==2.2.6
+scipy==1.15.3
+praat-parselmouth==0.4.6
+faster-whisper==1.2.1
+fastembed==0.9.1
+fastapi==0.162.0
+starlette==1.10.0
+pillow==13.0.0
+uvicorn==0.38.0
+pytest==8.4.2
+httpx==0.28.1
+ruff==0.14.2
+black==26.10.1
+mypy==1.18.2
+jaraco.context==6.1.2
+wheel==0.48.0
+

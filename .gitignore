@@ -1,0 +1,28 @@
+.local/
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.log
+.DS_Store
+.ruff_cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Local source/reference attachments; keep application-owned docs in Markdown.
+*.xlsx
+*.xls
+*.xlsm
+*.pdf
+*.ppt
+*.pptx
+
+# Local coding-agent metadata.
+.agents/
+.codex/
+AGENT.md

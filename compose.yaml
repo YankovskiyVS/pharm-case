@@ -1,0 +1,234 @@
+name: psitech
+services:
+  db:
+    image: psitech-postgres:16.15-patched
+    build: ./infra/postgres
+    environment:
+      POSTGRES_USER: psitech
+      POSTGRES_DB: psitech
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U psitech -d psitech"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    mem_limit: 512m
+  migrate:
+    build:
+      context: ./backend-app
+      target: runtime
+    command: [migrate]
+    environment:
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      APP_DB_PASSWORD_FILE: /run/secrets/app_db_password
+    secrets: [db_password, app_db_password]
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+  api:
+    build:
+      context: ./backend-app
+      target: runtime
+    environment:
+      DB_PASSWORD_FILE: /run/secrets/app_db_password
+      DB_USER: psitech_app
+      MIGRATE_ON_START: "false"
+      SEED_PASSWORD_FILE: /run/secrets/seed_password
+      DOCTOR_TOTP_FILE: /run/secrets/doctor_totp
+      AUDIO_URL: "http://audio:8001"
+      AUDIO_DIR: /audio
+      AUDIO_TOKEN_FILE: /run/secrets/audio_token
+      VOICEFM_URL: "${VOICEFM_URL:-http://voicefm:8002}"
+      VOICEFM_MODE: "${VOICEFM_MODE:-mock}"
+      VOICEFM_TOKEN_FILE: /run/secrets/voicefm_token
+      SUPPORT_CHAT_MODE: "${SUPPORT_CHAT_MODE:-demo}"
+      SUPPORT_CHAT_URL: "${SUPPORT_CHAT_URL:-https://api.openai.com/v1}"
+      SUPPORT_CHAT_MODEL: "${SUPPORT_CHAT_MODEL:-gpt-5-mini}"
+      SUPPORT_CHAT_API_KEY_FILE: /run/secrets/support_chat_api_key
+      OPS_TOKEN_FILE: /run/secrets/ops_token
+      OPS_EMAIL: "${OPS_EMAIL:-}"
+      PUBMED_TOOL: "${PUBMED_TOOL:-psitech}"
+      PUBMED_EMAIL: "${PUBMED_EMAIL:-}"
+      PUBMED_API_KEY_FILE: "${PUBMED_API_KEY_FILE:-}"
+      CLINICAL_RESEARCH_URL: "${CLINICAL_RESEARCH_URL:-https://api.openai.com/v1}"
+      CLINICAL_RESEARCH_MODEL: "${CLINICAL_RESEARCH_MODEL:-gpt-6-astra}"
+      CLINICAL_RESEARCH_MODE: "${CLINICAL_RESEARCH_MODE:-demo}"
+      CLINICAL_RESEARCH_API_KEY_FILE: /run/secrets/support_chat_api_key
+      SEED_DEMO: "${SEED_DEMO:-true}"
+      EMAIL_ENABLED: "${EMAIL_ENABLED:-false}"
+      EMAIL_ENCRYPTION_KEY_FILE: /run/secrets/email_encryption_key
+      PUBLIC_URL: "${PUBLIC_URL:-http://localhost:${APP_PORT:-8080}}"
+      GMAIL_FROM: "${GMAIL_FROM:-}"
+      GMAIL_CREDENTIALS_FILE: /run/secrets/gmail_credentials
+      TRUSTED_PROXY_CIDRS: "${TRUSTED_PROXY_CIDRS:-172.16.0.0/12,192.168.0.0/16}"
+      COOKIE_SECURE: "${COOKIE_SECURE:-false}"
+      APP_ORIGINS: "${APP_ORIGINS:-http://localhost:${APP_PORT:-8080},http://127.0.0.1:${APP_PORT:-8080}}"
+    secrets: [app_db_password, seed_password, doctor_totp, email_encryption_key, gmail_credentials, audio_token, voicefm_token, ops_token, support_chat_api_key]
+    volumes: [audio_data:/audio]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      audio:
+        condition: service_healthy
+      voicefm:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+  audio:
+    build: ./audio-service
+    environment:
+      AUDIO_TOKEN_FILE: /run/secrets/audio_token
+      AUDIO_MODEL_DIR: /models
+      AUDIO_CACHE_DIR: /cache
+      AUDIO_PREWARM_ON_START: "${AUDIO_PREWARM_ON_START:-true}"
+    secrets: [audio_token]
+    volumes: [audio_models:/models, audio_cache:/cache]
+    tmpfs: [/tmp:size=256m]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 3g
+  voicefm:
+    build:
+      context: ./voicefm-service
+      args:
+        WITH_MODEL: "${VOICEFM_WITH_MODEL:-false}"
+    environment:
+      VOICEFM_MODE: "${VOICEFM_MODE:-mock}"
+      VOICEFM_MODEL_DIR: /models
+      VOICEFM_TOKEN_FILE: /run/secrets/voicefm_token
+    secrets: [voicefm_token]
+    volumes: ["${VOICEFM_ARTIFACT_DIR:-${SECRETS_DIR:-./.local}/voicefm}:/models:ro"]
+    tmpfs: [/tmp:size=128m]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: "${VOICEFM_MEMORY_LIMIT:-1g}"
+  frontend:
+    build:
+      context: ./frontend-app
+    ports: ["127.0.0.1:${APP_PORT:-8080}:8080"]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp, /var/cache/nginx, /var/run]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, wget, -qO-, "http://127.0.0.1:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    mem_limit: 128m
+  models:
+    profiles: [tools]
+    build: ./audio-service
+    entrypoint: [python, -m, manage_models]
+    command: [prewarm]
+    environment:
+      AUDIO_MODEL_DIR: /models
+      AUDIO_CACHE_DIR: /cache
+    volumes: [audio_models:/models, audio_cache:/cache]
+    tmpfs: [/tmp:size=256m]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 3g
+  gmail-authorize:
+    profiles: [tools]
+    build:
+      context: ./backend-app
+      target: runtime
+    command: [gmail-authorize]
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    ports: ["127.0.0.1:8765:8765"]
+    environment:
+      GMAIL_CLIENT_FILE: /config/client.json
+      GMAIL_CREDENTIALS_FILE: /config/credentials.json
+      GMAIL_OAUTH_LISTEN: "0.0.0.0:8765"
+    volumes: ["${SECRETS_DIR:-./.local}/gmail:/config"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    healthcheck:
+      disable: true
+  backup-tool:
+    profiles: [tools]
+    build: ./infra/backup
+    volumes: [audio_data:/audio:ro]
+    secrets: [backup_key]
+    environment:
+      BACKUP_KEY_FILE: /run/secrets/backup_key
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+  api-test:
+    profiles: [test]
+    build:
+      context: ./backend-app
+      target: test
+    environment:
+      TEST_DATABASE_URL: postgres://psitech_test:local-test-only@test-db:5432/psitech_test?sslmode=disable
+    depends_on:
+      test-db:
+        condition: service_healthy
+  test-db:
+    profiles: [test]
+    image: psitech-postgres:16.15-patched
+    build: ./infra/postgres
+    environment:
+      POSTGRES_USER: psitech_test
+      POSTGRES_DB: psitech_test
+      POSTGRES_PASSWORD: local-test-only
+    tmpfs: [/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U psitech_test -d psitech_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+volumes:
+  postgres_data:
+  audio_data:
+  audio_models:
+  audio_cache:
+secrets:
+  support_chat_api_key:
+    file: ${SECRETS_DIR:-./.local}/support_chat_api_key
+  audio_token:
+    file: ${SECRETS_DIR:-./.local}/audio_token
+  voicefm_token:
+    file: ${SECRETS_DIR:-./.local}/voicefm_token
+  db_password:
+    file: ${SECRETS_DIR:-./.local}/db_password
+  seed_password:
+    file: ${SECRETS_DIR:-./.local}/seed_password
+  doctor_totp:
+    file: ${SECRETS_DIR:-./.local}/doctor_totp
+  email_encryption_key:
+    file: ${SECRETS_DIR:-./.local}/email_encryption_key
+  gmail_credentials:
+    file: ${SECRETS_DIR:-./.local}/gmail/credentials.json
+  ops_token:
+    file: ${SECRETS_DIR:-./.local}/ops_token
+  backup_key:
+    file: ${SECRETS_DIR:-./.local}/backup_key
+  app_db_password:
+    file: ${SECRETS_DIR:-./.local}/app_db_password

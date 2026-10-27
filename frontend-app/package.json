@@ -1,0 +1,35 @@
+{
+  "name": "psitech-frontends",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev:doctor": "vite apps/doctor --host 0.0.0.0 --port 5173",
+    "dev:patient": "vite apps/patient --host 0.0.0.0 --port 5174",
+    "build": "npm run typecheck && vite build apps/doctor --base=/doctor/ && vite build apps/patient --base=/patient/",
+    "typecheck": "tsc --noEmit",
+    "generate": "openapi-typescript ../api/openapi.json -o packages/api-client/schema.d.ts",
+    "lint": "eslint .",
+    "test:e2e": "playwright test",
+    "format": "prettier --write apps packages tests *.ts *.js *.json",
+    "format:check": "prettier --check apps packages tests *.ts *.js *.json"
+  },
+  "dependencies": {
+    "lucide-react": "0.468.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "24.9.1",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "eslint": "9.38.0",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "openapi-typescript": "7.10.1",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.46.2",
+    "vite": "7.3.7"
+  }
+}

@@ -1,0 +1,7 @@
+# Installed only with Docker build argument WITH_MODEL=true.
+# Keep torch and torchaudio at the same published ABI version.
+torch==2.11.0
+torchaudio==2.11.0
+transformers==5.20.2
+safetensors==0.8.0
+soundfile==0.13.1

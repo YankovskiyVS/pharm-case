@@ -1,0 +1,10 @@
+{
+    admin off
+    auto_https disable_redirects
+}
+https://localhost, https://127.0.0.1 {
+    tls internal
+    reverse_proxy frontend:8080 {
+        header_up X-Real-IP {remote_host}
+    }
+}

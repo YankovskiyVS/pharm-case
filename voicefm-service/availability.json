@@ -1,0 +1,19 @@
+{
+  "checked_at": "2026-10-26",
+  "upstream_repository": "https://github.com/oelemento/VoiceFM-public",
+  "upstream_revision": "86d22629bde5d4e15194197da38e9c5323f48da9",
+  "code_license": "MIT",
+  "weights_license": "not supplied; must obtain separately",
+  "paper_doi": "10.64898/2026.05.28.26354346",
+  "artifact_doi": null,
+  "availability": "access_required",
+  "evidence": [
+    {"url":"https://github.com/oelemento/VoiceFM-public/blob/86d22629bde5d4e15194197da38e9c5323f48da9/data/README.md", "finding":"Checkpoints released separately under unspecified DOI; ask authors for access. Dataset DOI is not a weights DOI."},
+    {"url":"https://api.github.com/repos/oelemento/VoiceFM-public/releases", "finding":"No releases: []"},
+    {"url":"https://huggingface.co/api/models?search=VoiceFM", "finding":"No matching public models: []"},
+    {"url":"https://zenodo.org/api/records?q=VoiceFM&size=10", "finding":"No matching public records: total0"},
+    {"url":"https://www.medrxiv.org/content/10.64898/2026.05.28.26354346v1.full", "finding":"Data/code availability supplies no trained checkpoint DOI or fitted probes."},
+    {"url":"https://github.com/oelemento/VoiceFM-public/blob/86d22629bde5d4e15194197da38e9c5323f48da9/scripts/unified_gsd_probes_v3.py", "finding":"Fits StandardScaler and LogisticRegression per participant split; exports AUROC results, not fitted estimator coefficients."}
+  ],
+  "missing_artifacts": ["authorized VoiceFM contrastive encoder checkpoint", "original Whisper config and feature extractor config", "original training recording task map", "fitted StandardScaler and logistic probe coefficients", "weights/probe distribution and deployment license"]
+}
